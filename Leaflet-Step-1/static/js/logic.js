@@ -1,5 +1,7 @@
+  
 // Store our API endpoint inside queryUrl
 var queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
+
 
 // Perform a GET request to the query URL
 d3.json(queryUrl, function(data) {
@@ -13,67 +15,33 @@ function createFeatures(earthquakeData) {
   // Give each feature a popup describing the place and time of the earthquake
   function onEachFeature(feature, layer) {
     layer.bindPopup("<h3>" + feature.properties.place +
-      //"</h3><hr><p>" + new Date(feature.properties.time) + "</p>");
       "</h3><hr><p> Magnitude  "  + feature.properties.mag + ' , ' + new Date(feature.properties.time) + "</p>");
   }
 
-
   // Create a GeoJSON layer containing the features array on the earthquakeData object
-  // Run the onEachFeature function once for each piece of data in the array
- /*  var earthquakes = L.geoJSON(earthquakeData, {
-    onEachFeature: onEachFeature
-  }); */
-
-    // Define function to create the circle radius based on the magnitude
-    function radiusSize(mag) {
-      return mag * 10000;
-    }
   
-    // Define function to set the circle color based on the magnitude
-    function circleColor(mag) {
-      if (mag < 1) {
-        return "#00FFFF"
-      }
-      else if (mag < 2) {
-        return "#7FFF00"
-      }
-      else if (mag < 3) {
-        return "#FFD700"
-      }
-      else if (mag < 4) {
-        return "#FFA07A"
-      }
-      else if (mag < 5) {
-        return "#800000"
-      }
-      else {
-        return "#FFEDA0"
-      }
-    }
-  
+  var earthquakes = L.geoJSON(earthquakeData, {
 
-    // Create a GeoJSON layer containing the features array on the earthquakeData object
+    pointToLayer: function (feature, latlng) {
+      return L.circleMarker(latlng, {
+        radius: markerSize(feature.properties.mag),
+        fillColor: colorRange(feature.properties.mag),
+        color: "black",
+        weight: 0.5,
+        opacity: 0.5,
+        fillOpacity: 0.8
+      });
+    },
+
     // Run the onEachFeature function once for each piece of data in the array
-    var earthquakes = L.geoJSON(earthquakeData, {
-      pointToLayer: function(earthquakeData, latlng) {
-        return L.circle(latlng, {
-          radius: radiusSize(earthquakeData.properties.mag),
-          color: circleColor(earthquakeData.properties.mag),
-          fillOpacity: 1
-        });
-      },
-      onEachFeature: onEachFeature
-    });
-  
+    onEachFeature: onEachFeature
+  });
 
   // Sending our earthquakes layer to the createMap function
   createMap(earthquakes);
 }
-function newFunction() {
-  var legend = L.control({ position: 'bottomright' });
-  legend.addTo(map);
-}
 
+// Define function to create a map
 function createMap(earthquakes) {
 
   // Define streetmap and darkmap layers
@@ -106,7 +74,6 @@ function createMap(earthquakes) {
   var myMap = L.map("map", {
     center: [
       37.09, -95.71
-
     ],
     zoom: 5,
     layers: [streetmap, earthquakes]
@@ -118,5 +85,77 @@ function createMap(earthquakes) {
   L.control.layers(baseMaps, overlayMaps, {
     collapsed: false
   }).addTo(myMap);
+
+
+// Create the legend
+var legend = L.control({
+  position: "bottomright"
+});
+
+
+function getColor(d) {
+  return d > 5 ? 'black' :
+         d > 4  ? 'green' :
+         d > 3  ? 'red' :
+         d > 2  ? 'orange' :
+         d > 1  ? 'yellow' :
+                  'white';
 }
+
+    // Set Up Legend for the map
+    var legend = L.control({ position: "bottomright" });
+    legend.onAdd = function() {
+        var div = L.DomUtil.create("div", "info legend"), 
+        magnitude = [0, 1, 2, 3, 4, 5];
+
+        div.innerHTML += "<h3>Magnitude</h3>"
+
+        for (var i = 0; i < magnitude.length; i++) {
+            div.innerHTML +=
+                '<i style="background: ' + getColor(magnitude[i] + 1) + '"></i> ' +
+                magnitude[i] + (magnitude[i + 1] ? '&ndash;' + magnitude[i + 1] + '<br>' : '+');
+        }
+        return div;
+    };
+    // Add Legend to the Map
+    legend.addTo(myMap);
+};
+
+
+// Define colors depending on the magnituge of the earthquake
+function colorRange(magnituge) {
+
+switch (true) {
+  case magnituge >= 5.0:
+    return 'black';
+    break;
+
+  case magnituge >= 4.0:
+    return 'green';
+    break;
+  
+  case magnituge >= 3.0:
+    return 'red';
+    break;
+
+  case magnituge >= 2.0:
+    return 'orange';
+    break;
+
+  case magnituge >= 1.0:
+    return 'yellow';
+    break;
+
+  default:
+    return 'white';
+};
+};
+
+
+
+// Reflect the earthquake magnitude
+function markerSize(magnituge) {
+  return magnituge*6;
+}; 
+
 
